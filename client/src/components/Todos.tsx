@@ -11,7 +11,9 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  SemanticCOLORS,
+  Modal
 } from 'semantic-ui-react'
 
 import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
@@ -27,13 +29,17 @@ interface TodosState {
   todos: Todo[]
   newTodoName: string
   loadingTodos: boolean
+  isOpen: boolean
+  deletedId: string
 }
 
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
   state: TodosState = {
     todos: [],
     newTodoName: '',
-    loadingTodos: true
+    loadingTodos: true,
+    isOpen: false,
+    deletedId: ''
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +70,8 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     try {
       await deleteTodo(this.props.auth.getIdToken(), todoId)
       this.setState({
-        todos: this.state.todos.filter(todo => todo.todoId !== todoId)
+        todos: this.state.todos.filter(todo => todo.todoId !== todoId),
+        isOpen: false
       })
     } catch {
       alert('Todo deletion failed')
@@ -81,11 +88,11 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       })
       this.setState({
         todos: update(this.state.todos, {
-          [pos]: { done: { $set: !todo.done } }
+          [pos]: { done: { $set: !todo.done } },
         })
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Todo check failed')
     }
   }
 
@@ -109,6 +116,30 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         {this.renderCreateTodoInput()}
 
         {this.renderTodos()}
+
+        <Modal
+          onClose={() => this.setState({ isOpen: false })}
+          onOpen={() => this.setState({ isOpen: true })}
+          open={this.state.isOpen}
+          size='small'
+        >
+          <Header >
+            Delete Todo Item
+          </Header>
+          <Modal.Content>
+            <p>
+              {`Do you want to delete ${this.state.todos[this.state.todos.findIndex(item => item.todoId === this.state.deletedId)]?.name} ?`}
+            </p>
+          </Modal.Content>
+          <Modal.Actions>
+            <Button color='red' inverted onClick={() => this.setState({ isOpen: false })}>
+              <Icon name='remove' /> No
+            </Button>
+            <Button color='green' inverted onClick={() => this.onTodoDelete(this.state.deletedId)}>
+              <Icon name='checkmark' /> Yes
+            </Button>
+          </Modal.Actions>
+        </Modal>
       </div>
     )
   }
@@ -161,7 +192,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       <Grid padded>
         {this.state.todos.map((todo, pos) => {
           return (
-            <Grid.Row key={todo.todoId}>
+            <Grid.Row key={todo.todoId} color={this.checkDate(todo.dueDate)}>
               <Grid.Column width={1} verticalAlign="middle">
                 <Checkbox
                   onChange={() => this.onTodoCheck(pos)}
@@ -187,7 +218,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                 <Button
                   icon
                   color="red"
-                  onClick={() => this.onTodoDelete(todo.todoId)}
+                  onClick={() => this.setState({
+                    isOpen: true,
+                    deletedId: todo.todoId
+                  })}
                 >
                   <Icon name="delete" />
                 </Button>
@@ -210,5 +244,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     date.setDate(date.getDate() + 7)
 
     return dateFormat(date, 'yyyy-mm-dd') as string
+  }
+
+  checkDate(date: string): SemanticCOLORS {
+    if (new Date(date).getTime() > new Date().getTime()) {
+      return 'green'
+    }
+    return 'grey'
   }
 }
