@@ -18,6 +18,11 @@ export async function getTodosByUserId(userId: string): Promise<TodoItem[]> {
     return todosAccess.getAllTodosByUserId(userId)
 }
 
+export async function findTodosByName(userId: string, name: string): Promise<TodoItem[]> {
+    logger.info('Find todo by name')
+    return todosAccess.findTodosByName(userId, name)
+}
+
 export async function createTodo(newTodo: CreateTodoRequest, userId: string): Promise<TodoItem> {
     logger.info('Create todo')
 
@@ -28,6 +33,7 @@ export async function createTodo(newTodo: CreateTodoRequest, userId: string): Pr
         todoId,
         createdAt: new Date().toISOString(),
         done: false,
+        lowerCaseName: newTodo.name.toLowerCase(),
         attachmentUrl: s3AttachmentUrl,
         ...newTodo
     }

@@ -13,6 +13,7 @@ export class TodosAccess {
     constructor(
         private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
         private readonly todosTable = process.env.TODOS_TABLE,
+        private readonly nameIndex = process.env.TODOS_NAME_INDEX,
     ) { }
 
     async getAllTodosByUserId(userId: string): Promise<TodoItem[]> {
@@ -23,6 +24,24 @@ export class TodosAccess {
                 ExpressionAttributeValues: {
                     ':userId': userId
                 }
+            })
+            .promise()
+        return result.Items as TodoItem[]
+    }
+
+    async findTodosByName(userId: string, name: string): Promise<TodoItem[]> {
+        const result = await this.docClient
+            .query({
+                TableName: this.todosTable,
+                IndexName: this.nameIndex,
+                KeyConditionExpression: 'userId = :userId and lowerCaseName = :name',
+                ExpressionAttributeValues: {
+                    ':userId': userId,
+                    ':name': name.toLowerCase()
+                }
+                // ExpressionAttributeNames: {
+                //     '#name': 'name'
+                // }
             })
             .promise()
         return result.Items as TodoItem[]
